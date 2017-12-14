@@ -279,19 +279,20 @@ T = 293.15 #Temperature (K)
 N_Av = 6.0221409e23 #particles per mole
 N_part = 250. #particles of cyclohexane in box
 
-files = ['cyclohexane_250_[#6X4:1]_epsilon0.1094_rmin_half1.9080.nc']
-file_strings = [i.rsplit('.',1)[0].split('_',2)[2] for i in files]
+#files = ['cyclohexane_250_[#6X4:1]_epsilon0.1094_rmin_half1.9080.nc']
+#file_strings = [i.rsplit('.',1)[0].split('_',2)[2] for i in files]
 
-file_str = set(file_strings)
+#file_str = set(file_strings)
 
-file_tups_traj = [['netCDF4Data_cychex_neat/cyclohexane_250_'+i+'_wAllConstraints_lowPMEco_1fs.nc'] for i in file_str]
-file_tups_traj_vac = [['netCDF4Data_cychex_neat/cyclohexane_'+i+'_wAllConstraints_vacuum.nc'] for i in file_str]
+file_tups_traj = [['netCDF4Data_cychex_neat/cyclohexane_250_native_param_wAllConstraints_lowPMEco_1fs.nc']]
+file_tups_traj_vac = [['netCDF4Data_cychex_neat/cyclohexane_native_param_wAllConstraints_vacuum.nc']]
 
-file_tups_sd = [['StateData_cychex_neat/cyclohexane_250_'+i+'_wAllConstraints_lowPMEco_1fs.csv'] for i in file_str]
-file_tups_sd_vac = [['StateData_cychex_neat/cyclohexane_'+i+'_wAllConstraints_vacuum.csv'] for i in file_str]
+file_tups_sd = [['StateData_cychex_neat/cyclohexane_250_native_param_wAllConstraints_lowPMEco_1fs.csv']]
+file_tups_sd_vac = [['StateData_cychex_neat/cyclohexane_native_param_wAllConstraints_vacuum.csv']]
 
-params = [i.rsplit('.',1)[0].rsplit('_') for i in files]
-params = [[i[3][7:],i[5][4:]] for i in params]
+#params = [i.rsplit('.',1)[0].rsplit('_') for i in files]
+#params = [[i[3][7:],i[5][4:]] for i in params]
+params = [['epsilon','rmin_half']]
 MMcyc = 84.164 #g/mol
 
 states_traj = [[] for i in file_tups_traj] 
@@ -623,7 +624,7 @@ for ii,value in enumerate(xyz_orig_sub):
                            'dC_p_res_bootstrap (J/mol/K)': dC_p_res_bootstrap,
                            'N_eff': N_eff
                           })
-    df.to_csv('MBAR_estimates_[6X4:1]_eps'+argv[1]+'-'+argv[2]+'_rmin'+argv[3]+'-'+argv[4]+'_baro10step_wAllConstraints_VVVR_1fs.csv',sep=';')
+    df.to_csv('MBAR_estimates_tetraC_eps'+argv[1]+'-'+argv[2]+'_rmin'+argv[3]+'-'+argv[4]+'_baro10step_wAllConstraints_VVVR_1fs.csv',sep=';')
     
     with open('param_states_1fs.pkl', 'wb') as f:
         pickle.dump(MBAR_moves, f)
