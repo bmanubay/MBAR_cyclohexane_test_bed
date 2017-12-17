@@ -306,7 +306,7 @@ vecs_orig = [[] for i in file_tups_sd]
 
 burnin = 2060#1000
 burnin_vac = 7490#3750
-
+"""
 print( 'Analyzing Cyclohexane neat liquid trajectories')
 for j,i in enumerate(file_tups_traj):
     for ii in i:            
@@ -438,34 +438,56 @@ state_coords = []
 state_coords.append(orig_state)
 for i in new_states:
      state_coords.append(i)
-
+"""
 filename = 'packmol_boxes/cyclohexane_250.pdb'
 pdb = PDBFile(filename)
 
-for ii,value in enumerate(xyz_orig_sub):
-    MBAR_moves = state_coords
-    print( "Number of MBAR calculations for liquid cyclohexane: %s" %(len(MBAR_moves)))
-    print( "starting MBAR calculations")
-    D = OrderedDict()
-    for i,val in enumerate(MBAR_moves):
-        D['State' + ' ' + str(i)] = [["[#6X4:1]",param_types[j],val[j]] for j in range(len(param_types))]#len(state_orig))]
-    D_mol = {'cyclohexane' : D} 
+u_kn = pickle.load( open( "pickles/u_kn_bulk_forMRS.pkl", "rb" ) )
+u_kn_vac = pickle.load( open( "pickles/u_kn_vac_forMRS.pkl", "rb" ) )
+E_kn = pickle.load( open( "pickles/E_kn_bulk_forMRS.pkl", "rb" ) )
+E_kn_vac = pickle.load( open( "pickles/E_kn_vac_forMRS.pkl", "rb" ) )
+vol_sub = pickle.load( open( "pickles/vol_sub_forMRS.pkl", "rb" ) )
+MBAR_moves = pickle.load( open("pickles/param_states_forMRS.pkl", "rb" ) )
+
+for ii,value in enumerate(vol_sub):
+    #MBAR_moves = state_coords
+    #print( "Number of MBAR calculations for liquid cyclohexane: %s" %(len(MBAR_moves)))
+    #print( "starting MBAR calculations")
+    #D = OrderedDict()
+    #for i,val in enumerate(MBAR_moves):
+    #    D['State' + ' ' + str(i)] = [["[#6X4:1]",param_types[j],val[j]] for j in range(len(param_types))]#len(state_orig))]
+    #D_mol = {'cyclohexane' : D} 
         
     # Produce the u_kn matrix for MBAR based on the subsampled configurations
-    E_kn, u_kn = new_param_energy(xyz_orig_sub[ii], D_mol, pdb.topology, vecs_orig_sub[ii], T = 293.15)
+    #E_kn, u_kn = new_param_energy(xyz_orig_sub[ii], D_mol, pdb.topology, vecs_orig_sub[ii], T = 293.15)
 #    E_kn_292, u_kn_292 = new_param_energy(xyz_sub[ii], D_mol, pdb.topology, vecs_orig_sub[ii], T = 292.15)
 #    E_kn_294, u_kn_294 = new_param_energy(xyz_sub[ii], D_mol, pdb.topology, vecs_orig_sub[ii], T = 294.15)
     
     # Alter u_kn by adding reduced pV term and create an H_kn matrix
-    betapV = (1./(kB*T))*101000.*np.array(vol_orig_sub)*1.e-6*1.e-3 
+    betapV = (1./(kB*T))*101000.*np.array(vol_sub)*1.e-6*1.e-3 
     u_kn += betapV
     H_kn = E_kn + kB*T*betapV 
 
     K,N = np.shape(u_kn)
                     
     N_k = np.zeros(K)
-    N_k[0] = N
+    N_k[0] = int(N)
+    #print( "Number of MBAR calculations for cyclohexane in vacuum: %s" %(len(MBAR_moves)))
+    #print( "starting MBAR calculations")
+    #D = OrderedDict()
+    #for i,val in enumerate(MBAR_moves):
+    #    D['State' + ' ' + str(i)] = [["[#6X4:1]",param_types[j],val[j]] for j in range(len(param_types))]#len(state_orig))]
+    #D_mol = {'cyclohexane' : D}
 
+    # Produce the u_kn matrix for MBAR based on the subsampled configurations
+    #E_kn_vac, u_kn_vac = new_param_energy_vac(xyz_orig_vac_sub[ii], D_mol, T = 293.15)
+    #E_kn_vac_292, u_kn_vac_292 = new_param_energy_vac(xyz_orig_vac_sub[ii], D_mol, T = 292.15)
+    #E_kn_vac_294, u_kn_vac_294 = new_param_energy_vac(xyz_orig_vac_sub[ii], D_mol, T = 294.15)
+
+    K_vac,N_vac = np.shape(u_kn_vac)
+
+    N_k_vac = np.zeros(K_vac)
+    N_k_vac[0] = int(N_vac)
     #implement bootstrapping to get variance estimates
     N_eff_boots = []
     u_kn_boots = []
@@ -475,12 +497,12 @@ for ii,value in enumerate(xyz_orig_sub):
     dCp_boots = []
     nBoots_work = 1000
     for n in range(nBoots_work):
-        for k in range(len(N_k_sub)):
-            if N_k_sub[k] > 0:
+        for k in range(len(N_k)):
+            if N_k[k] > 0:
                 if (n == 0):
-                    booti = np.array(range(N_k_sub[k]),int)
+                    booti = np.array(range(int(N_k[k])),int)
                 else:
-                    booti = np.random.randint(N_k_sub[k], size = N_k_sub[k])
+                    booti = np.random.randint(int(N_k[k]), size = int(N_k[k]))
         
         E_kn_boot = H_kn[:,booti]       
         u_kn_boot = u_kn[:,booti]
@@ -530,36 +552,18 @@ for ii,value in enumerate(xyz_orig_sub):
     Vol_bootstrap = [np.mean(V_boots_vt[:,a]) for a in range(np.shape(V_boots_vt)[1])] #Mean of Cp calculated with bootstrapping
     dVol_bootstrap = [np.std(V_boots_vt[:,a]) for a in range(np.shape(V_boots_vt)[1])] #Standard error of Cp from bootstrap   
 
-
-    print( "Number of MBAR calculations for cyclohexane in vacuum: %s" %(len(MBAR_moves)))
-    print( "starting MBAR calculations")
-    D = OrderedDict()
-    for i,val in enumerate(MBAR_moves):
-        D['State' + ' ' + str(i)] = [["[#6X4:1]",param_types[j],val[j]] for j in range(len(param_types))]#len(state_orig))]
-    D_mol = {'cyclohexane' : D}
-
-    # Produce the u_kn matrix for MBAR based on the subsampled configurations
-    E_kn_vac, u_kn_vac = new_param_energy_vac(xyz_orig_vac_sub[ii], D_mol, T = 293.15)
-    #E_kn_vac_292, u_kn_vac_292 = new_param_energy_vac(xyz_orig_vac_sub[ii], D_mol, T = 292.15)
-    #E_kn_vac_294, u_kn_vac_294 = new_param_energy_vac(xyz_orig_vac_sub[ii], D_mol, T = 294.15)
-
-    K_vac,N_vac = np.shape(u_kn_vac)
-
-    N_k_vac = np.zeros(K_vac)
-    N_k_vac[0] = N_vac
-
     N_eff_vac_boots = []
     u_kn_vac_boots = []
     Cp_vac_boots = []
     dCp_vac_boots = []
     nBoots_work = 1000
     for n in range(nBoots_work):
-        for k in range(len(N_k_vac_sub)):
-            if N_k_vac_sub[k] > 0:
+        for k in range(len(N_k_vac)):
+            if N_k_vac[k] > 0:
                 if (n == 0):
-                    booti = np.array(range(N_k_vac_sub[k]),int)
+                    booti = np.array(range(int(N_k_vac[k])),int)
                 else:
-                    booti = np.random.randint(N_k_vac_sub[k], size = N_k_vac_sub[k])
+                    booti = np.random.randint(int(N_k_vac[k]), size = int(N_k_vac[k]))
 
         E_kn_vac = E_kn_vac[:,booti]
         u_kn_vac = u_kn_vac[:,booti]
@@ -626,12 +630,12 @@ for ii,value in enumerate(xyz_orig_sub):
                           })
     df.to_csv('MBAR_estimates_tetraC_eps'+argv[1]+'-'+argv[2]+'_rmin'+argv[3]+'-'+argv[4]+'_baro10step_wAllConstraints_VVVR_1fs.csv',sep=';')
     
-    with open('param_states_1fs.pkl', 'wb') as f:
-        pickle.dump(MBAR_moves, f)
-    with open('u_kn_bulk_1fs.pkl', 'wb') as f:
-        pickle.dump(u_kn, f)
-    with open('u_kn_vac_1fs.pkl', 'wb') as f:
-        pickle.dump(u_kn_vac, f)
+    #with open('param_states_1fs.pkl', 'wb') as f:
+    #    pickle.dump(MBAR_moves, f)
+    #with open('u_kn_bulk_1fs.pkl', 'wb') as f:
+    #    pickle.dump(u_kn, f)
+    #with open('u_kn_vac_1fs.pkl', 'wb') as f:
+    #    pickle.dump(u_kn_vac, f)
 """
 files = nc.glob('MBAR_estimates_*_baro10step_wAllConstraints_VVVR_1fs.csv')
 
