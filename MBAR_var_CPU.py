@@ -442,6 +442,7 @@ for i in new_states:
 filename = 'packmol_boxes/cyclohexane_250.pdb'
 pdb = PDBFile(filename)
 
+nBoots_work = 1000
 u_kn = pickle.load( open( "pickles/u_kn_bulk_forMRS.pkl", "rb" ) )
 u_kn_vac = pickle.load( open( "pickles/u_kn_vac_forMRS.pkl", "rb" ) )
 E_kn = pickle.load( open( "pickles/E_kn_bulk_forMRS.pkl", "rb" ) )
@@ -460,11 +461,17 @@ for ii,value in enumerate(vol_sub):
         
     # Produce the u_kn matrix for MBAR based on the subsampled configurations
     #E_kn, u_kn = new_param_energy(xyz_orig_sub[ii], D_mol, pdb.topology, vecs_orig_sub[ii], T = 293.15)
-#    E_kn_292, u_kn_292 = new_param_energy(xyz_sub[ii], D_mol, pdb.topology, vecs_orig_sub[ii], T = 292.15)
-#    E_kn_294, u_kn_294 = new_param_energy(xyz_sub[ii], D_mol, pdb.topology, vecs_orig_sub[ii], T = 294.15)
+    #E_kn_292, u_kn_292 = new_param_energy(xyz_sub[ii], D_mol, pdb.topology, vecs_orig_sub[ii], T = 292.15)
+    #E_kn_294, u_kn_294 = new_param_energy(xyz_sub[ii], D_mol, pdb.topology, vecs_orig_sub[ii], T = 294.15)
     
     # Alter u_kn by adding reduced pV term and create an H_kn matrix
-    betapV = (1./(kB*T))*101000.*np.array(vol_sub)*1.e-6*1.e-3 
+    #We then need to convert from 1 atm * 100 nm^3 to kJ/mol. Easiest is to go to liter-atm/mol, 
+    # and then convert to kJ/mol.
+    # 1 atm*nm^3   * 1 m^3 / 10^27 nm *  1000 L / 1 m^3  *  6.02214 x 10^23 things / 1 mol  * 
+    # (0.00831446 kJ / 0.0820573 L*atm) = 0.0610194 kJ/mol. So the PV terms should be around 6 kJ/mol
+    #Beta is 0.410, so the betaPV terms should be around 2.5. 
+
+    betapV = (1./(kB*T))*np.array(vol_sub)*0.0610194
     u_kn += betapV
     H_kn = E_kn + kB*T*betapV 
 
@@ -472,22 +479,12 @@ for ii,value in enumerate(vol_sub):
                     
     N_k = np.zeros(K)
     N_k[0] = int(N)
-    #print( "Number of MBAR calculations for cyclohexane in vacuum: %s" %(len(MBAR_moves)))
-    #print( "starting MBAR calculations")
-    #D = OrderedDict()
-    #for i,val in enumerate(MBAR_moves):
-    #    D['State' + ' ' + str(i)] = [["[#6X4:1]",param_types[j],val[j]] for j in range(len(param_types))]#len(state_orig))]
-    #D_mol = {'cyclohexane' : D}
 
-    # Produce the u_kn matrix for MBAR based on the subsampled configurations
-    #E_kn_vac, u_kn_vac = new_param_energy_vac(xyz_orig_vac_sub[ii], D_mol, T = 293.15)
-    #E_kn_vac_292, u_kn_vac_292 = new_param_energy_vac(xyz_orig_vac_sub[ii], D_mol, T = 292.15)
-    #E_kn_vac_294, u_kn_vac_294 = new_param_energy_vac(xyz_orig_vac_sub[ii], D_mol, T = 294.15)
-
-    K_vac,N_vac = np.shape(u_kn_vac)
+    K_vac, N_vac = np.shape(u_kn_vac)
 
     N_k_vac = np.zeros(K_vac)
     N_k_vac[0] = int(N_vac)
+
     #implement bootstrapping to get variance estimates
     N_eff_boots = []
     u_kn_boots = []
@@ -495,7 +492,6 @@ for ii,value in enumerate(vol_sub):
     dV_boots =[]
     Cp_boots = []
     dCp_boots = []
-    nBoots_work = 1000
     for n in range(nBoots_work):
         for k in range(len(N_k)):
             if N_k[k] > 0:
@@ -503,11 +499,13 @@ for ii,value in enumerate(vol_sub):
                     booti = np.array(range(int(N_k[k])),int)
                 else:
                     booti = np.random.randint(int(N_k[k]), size = int(N_k[k]))
-        
+
         E_kn_boot = H_kn[:,booti]       
         u_kn_boot = u_kn[:,booti]
+        vol_sub_boot = vol_sub[0,booti]
+
         u_kn_boots.append(u_kn)
-        
+
         # Initialize MBAR with Newton-Raphson
         # Use Adaptive Method (Both Newton-Raphson and Self-Consistent, testing which is better)
         ########################################################################################  
@@ -518,22 +516,23 @@ for ii,value in enumerate(vol_sub):
 
         mbar = mb.MBAR(u_kn_boot, N_k, verbose=False, relative_tolerance=1e-12,initial_f_k=initial_f_k)
           
-        N_eff = mbar.computeEffectiveSampleNumber(verbose=True)
+        #N_eff = mbar.computeEffectiveSampleNumber(verbose=True)
+        N_eff = mbar.computeEffectiveSampleNumber(verbose=False)
         
         N_eff_boots.append(N_eff)
 
-        (E_expect, dE_expect) = mbar.computeExpectations(E_kn_boot,state_dependent = True)
-        (Vol_expect,dVol_expect) = mbar.computeExpectations(vol_sub,state_dependent = False)
-        
+        (Vol_expect,dVol_expect) = mbar.computeExpectations(vol_sub_boot,state_dependent = False)
         V_boots.append(Vol_expect)
         dV_boots.append(dVol_expect)
-              
-        E_fluc_input = np.array([(E_kn[i][:] - E_expect[i])**2 for i in range(len(E_expect))])
-        (E_fluc_expect, dE_fluc_expect) = mbar.computeExpectations(E_fluc_input,state_dependent = True)
-        
+
+
+        (E_expect, dE_expect) = mbar.computeExpectations(E_kn_boot,state_dependent = True)
+        (E2_expect, dE2_expect) = mbar.computeExpectations(E_kn_boot**2,state_dependent = True)
+        E_fluc_expect = E2_expect - E_expect**2
+        # error propagation by function d(x^2) = (2x)dx
+        dE_fluc_expect = np.sqrt(dE2_expect**2 + (2*E_expect*dE_expect)**2) # correlation in E and E^2 not accounted for.
         C_p_expect_meth2 = E_fluc_expect/(kB * T**2)
         dC_p_expect_meth2 = dE_fluc_expect/(kB * T**2)
-
         Cp_boots.append(C_p_expect_meth2)
         dCp_boots.append(dC_p_expect_meth2)
         
@@ -556,7 +555,6 @@ for ii,value in enumerate(vol_sub):
     u_kn_vac_boots = []
     Cp_vac_boots = []
     dCp_vac_boots = []
-    nBoots_work = 1000
     for n in range(nBoots_work):
         for k in range(len(N_k_vac)):
             if N_k_vac[k] > 0:
@@ -580,14 +578,17 @@ for ii,value in enumerate(vol_sub):
 
         mbar_vac = mb.MBAR(u_kn_vac, N_k_vac, verbose=False, relative_tolerance=1e-12,initial_f_k=initial_f_k)
 
-        N_eff_vac = mbar_vac.computeEffectiveSampleNumber(verbose=True)
+        #N_eff_vac = mbar_vac.computeEffectiveSampleNumber(verbose=True)
+        N_eff_vac = mbar_vac.computeEffectiveSampleNumber(verbose=False)
         
         N_eff_vac_boots.append(N_eff_vac)        
 
         (E_vac_expect, dE_vac_expect) = mbar_vac.computeExpectations(E_kn_vac,state_dependent = True)
-    
-        E_vac_fluc_input = np.array([(E_kn_vac[i][:] - E_vac_expect[i])**2 for i in range(len(E_vac_expect))])
-        (E_vac_fluc_expect, dE_vac_fluc_expect) = mbar_vac.computeExpectations(E_vac_fluc_input,state_dependent = True)
+        (E2_vac_expect, dE2_vac_expect) = mbar_vac.computeExpectations(E_kn_vac**2,state_dependent = True)
+
+        E_vac_fluc_expect = E2_vac_expect - E_vac_expect**2
+        # error propagation by function d(x^2) = (2x)dx 
+        dE_vac_fluc_expect = np.sqrt(dE2_vac_expect**2 + (2*dE_vac_expect*E_vac_expect)**2)  # not a good estimate: correlation in E^2 and E!
 
         C_p_vac_expect_meth2 = E_vac_fluc_expect/(kB * T**2)
         dC_p_vac_expect_meth2 = dE_vac_fluc_expect/(kB * T**2)
@@ -650,7 +651,6 @@ dVol_boot = []
 C_p_boot = []
 dC_p_boot = []
 N_eff = []
-
 for i in files:
     df = pd.read_csv(i,sep=';')
     print(i,df.columns)
