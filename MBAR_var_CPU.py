@@ -478,7 +478,7 @@ for ii,value in enumerate(vol_sub):
     #     Pa*m^3/mol [=] J/mol, so multiply by 1.e-3 to get units of kJ/mol.
 
     P = 101000. #Pa
-    betapV = (1./(kB*T))*P*np.array(vol_sub)
+    betapV = (1./(kB*T))*P*np.array(vol_sub)*1.e-3*1.e-6
     u_kn += betapV
     H_kn = E_kn + kB*T*betapV 
 
