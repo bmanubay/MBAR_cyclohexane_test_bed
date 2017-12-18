@@ -444,12 +444,15 @@ pdb = PDBFile(filename)
 
 nBoots_work = 1000
 u_kn = pickle.load( open( "pickles/u_kn_bulk_forMRS.pkl", "rb" ) )
-u_kn_vac = pickle.load( open( "pickles/u_kn_vac_forMRS.pkl", "rb" ) )
-E_kn = pickle.load( open( "pickles/E_kn_bulk_forMRS.pkl", "rb" ) )
-E_kn_vac = pickle.load( open( "pickles/E_kn_vac_forMRS.pkl", "rb" ) )
-vol_sub = pickle.load( open( "pickles/vol_sub_forMRS.pkl", "rb" ) )
+u_kn_vac = pickle.load( open( "pickles/u_kn_vac_forMRS.pkl", "rb" ) )   
+E_kn = pickle.load( open( "pickles/E_kn_bulk_forMRS.pkl", "rb" ) )          #kJ/mol
+E_kn_vac = pickle.load( open( "pickles/E_kn_vac_forMRS.pkl", "rb" ) )       #kJ/mol
+vol_sub = pickle.load( open( "pickles/vol_sub_forMRS.pkl", "rb" ) )         #mL/mol
 MBAR_moves = pickle.load( open("pickles/param_states_forMRS.pkl", "rb" ) )
 
+print(np.shape(u_kn))
+print(np.shape(vol_sub))
+exit()
 for ii,value in enumerate(vol_sub):
     #MBAR_moves = state_coords
     #print( "Number of MBAR calculations for liquid cyclohexane: %s" %(len(MBAR_moves)))
@@ -470,8 +473,12 @@ for ii,value in enumerate(vol_sub):
     # 1 atm*nm^3   * 1 m^3 / 10^27 nm *  1000 L / 1 m^3  *  6.02214 x 10^23 things / 1 mol  * 
     # (0.00831446 kJ / 0.0820573 L*atm) = 0.0610194 kJ/mol. So the PV terms should be around 6 kJ/mol
     #Beta is 0.410, so the betaPV terms should be around 2.5. 
+ 
+    #BCM: Volumes are already on a per mol basis (mL/mol). Convert from mL to m^3 *=1.e-6. 
+    #     Pa*m^3/mol [=] J/mol, so multiply by 1.e-3 to get units of kJ/mol.
 
-    betapV = (1./(kB*T))*np.array(vol_sub)*0.0610194
+    P = 101000. #Pa
+    betapV = (1./(kB*T))*P*np.array(vol_sub)
     u_kn += betapV
     H_kn = E_kn + kB*T*betapV 
 
@@ -525,7 +532,9 @@ for ii,value in enumerate(vol_sub):
         V_boots.append(Vol_expect)
         dV_boots.append(dVol_expect)
 
-
+        # Calculating Cp as (<E**2> - <E>**2)/(kB*T**2). DID originally try the alternate
+        # <(E - <E>)**2>/(kB*T**2) [hence the `C_p_expect_meth2` for second method], but they
+        # yielded the same results and I chose one of them.
         (E_expect, dE_expect) = mbar.computeExpectations(E_kn_boot,state_dependent = True)
         (E2_expect, dE2_expect) = mbar.computeExpectations(E_kn_boot**2,state_dependent = True)
         E_fluc_expect = E2_expect - E_expect**2
