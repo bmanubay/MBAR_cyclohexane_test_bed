@@ -609,7 +609,6 @@ for ii,value in enumerate(vol_sub):
     #######################################################################################
     # Calculate residual heat capacity
     #######################################################################################
-    set_trace()	
     C_p_res_expect = [bulk - gas for bulk,gas in zip(C_p_expect_meth2, C_p_vac_expect_meth2)]
     dC_p_res_expect = [np.sqrt(bulk**2 + gas**2) for bulk,gas in zip(dC_p_expect_meth2, dC_p_vac_expect_meth2)]
     
