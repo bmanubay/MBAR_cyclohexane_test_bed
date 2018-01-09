@@ -454,19 +454,6 @@ print(np.shape(u_kn))
 print(np.shape(vol_sub))
 exit()
 for ii,value in enumerate(vol_sub):
-    #MBAR_moves = state_coords
-    #print( "Number of MBAR calculations for liquid cyclohexane: %s" %(len(MBAR_moves)))
-    #print( "starting MBAR calculations")
-    #D = OrderedDict()
-    #for i,val in enumerate(MBAR_moves):
-    #    D['State' + ' ' + str(i)] = [["[#6X4:1]",param_types[j],val[j]] for j in range(len(param_types))]#len(state_orig))]
-    #D_mol = {'cyclohexane' : D} 
-        
-    # Produce the u_kn matrix for MBAR based on the subsampled configurations
-    #E_kn, u_kn = new_param_energy(xyz_orig_sub[ii], D_mol, pdb.topology, vecs_orig_sub[ii], T = 293.15)
-    #E_kn_292, u_kn_292 = new_param_energy(xyz_sub[ii], D_mol, pdb.topology, vecs_orig_sub[ii], T = 292.15)
-    #E_kn_294, u_kn_294 = new_param_energy(xyz_sub[ii], D_mol, pdb.topology, vecs_orig_sub[ii], T = 294.15)
-    
     # Alter u_kn by adding reduced pV term and create an H_kn matrix
     #We then need to convert from 1 atm * 100 nm^3 to kJ/mol. Easiest is to go to liter-atm/mol, 
     # and then convert to kJ/mol.
