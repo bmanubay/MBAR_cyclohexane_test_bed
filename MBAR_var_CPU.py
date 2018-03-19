@@ -564,6 +564,7 @@ for ii,value in enumerate(xyz_orig_sub):
     
     index += len(E_kn[0])
 
+<<<<<<< HEAD
     #K,N = np.shape(u_kn)
  
     #MBAR_moves = state_coords
@@ -579,6 +580,20 @@ for ii,value in enumerate(xyz_orig_sub):
     #E_kn_292, u_kn_292 = new_param_energy(xyz_sub[ii], D_mol, pdb.topology, vecs_orig_sub[ii], T = 292.15)
     #E_kn_294, u_kn_294 = new_param_energy(xyz_sub[ii], D_mol, pdb.topology, vecs_orig_sub[ii], T = 294.15)
     
+=======
+nBoots_work = 1000
+u_kn = pickle.load( open( "pickles/u_kn_bulk_forMRS.pkl", "rb" ) )
+u_kn_vac = pickle.load( open( "pickles/u_kn_vac_forMRS.pkl", "rb" ) )   
+E_kn = pickle.load( open( "pickles/E_kn_bulk_forMRS.pkl", "rb" ) )          #kJ/mol
+E_kn_vac = pickle.load( open( "pickles/E_kn_vac_forMRS.pkl", "rb" ) )       #kJ/mol
+vol_sub = pickle.load( open( "pickles/vol_sub_forMRS.pkl", "rb" ) )         #mL/mol
+MBAR_moves = pickle.load( open("pickles/param_states_forMRS.pkl", "rb" ) )
+
+print(np.shape(u_kn))
+print(np.shape(vol_sub))
+exit()
+for ii,value in enumerate(vol_sub):
+>>>>>>> 2f9b12ad12e8d863f3683637ba5c124a55230f0d
     # Alter u_kn by adding reduced pV term and create an H_kn matrix
     #We then need to convert from 1 atm * 100 nm^3 to kJ/mol. Easiest is to go to liter-atm/mol, 
     # and then convert to kJ/mol.
