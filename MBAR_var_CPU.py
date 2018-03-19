@@ -653,8 +653,8 @@ N_k_vac = pickle.load( open("pickles/N_k_vac_test_MRS.pkl", "rb" ) )
 K,N = np.shape(u_kns)
 K_vac,N_vac = np.shape(u_kns_vac)
 
-nBoots_work = 2
-nBoots_work_vac = 2
+nBoots_work = 1000
+nBoots_work_vac = 1000
 
 #implement bootstrapping to get variance estimates
 N_eff_boots = []
